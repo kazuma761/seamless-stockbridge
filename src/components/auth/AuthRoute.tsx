@@ -6,12 +6,14 @@ type AuthRouteProps = {
   children: React.ReactNode;
   requireAdmin?: boolean;
   requireInventoryManager?: boolean;
+  requireAuth?: boolean;
 };
 
 const AuthRoute = ({ 
   children, 
   requireAdmin = false, 
-  requireInventoryManager = false 
+  requireInventoryManager = false,
+  requireAuth = false
 }: AuthRouteProps) => {
   const { user, isLoading, isAdmin, isInventoryManager } = useAuth();
 
@@ -24,8 +26,13 @@ const AuthRoute = ({
     );
   }
 
+  // If authentication is not required, show the children
+  if (!requireAuth) {
+    return <>{children}</>;
+  }
+
   if (!user) {
-    // Redirect to login page if not authenticated
+    // Redirect to login page if authentication is required but not logged in
     return <Navigate to="/" replace />;
   }
 
