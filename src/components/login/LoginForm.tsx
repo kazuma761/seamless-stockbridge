@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
 import GlassCard from '../ui-components/GlassCard';
+import { useAuth } from '@/context/AuthContext';
 
 interface LoginFormProps {
   className?: string;
@@ -11,20 +11,19 @@ interface LoginFormProps {
 
 const LoginForm: React.FC<LoginFormProps> = ({ className }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const { signIn, signUp, isLoading } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // Simulate login delay
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate('/dashboard'); // Redirect to dashboard on successful login
-    }, 1500);
+    if (isSignUp) {
+      await signUp(email, password);
+    } else {
+      await signIn(email, password);
+    }
   };
 
   return (
@@ -36,20 +35,20 @@ const LoginForm: React.FC<LoginFormProps> = ({ className }) => {
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
-          <label htmlFor="username" className="block text-sm font-medium">
-            Username
+          <label htmlFor="email" className="block text-sm font-medium">
+            Email
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <User className="h-5 w-5 text-muted-foreground" />
             </div>
             <input
-              id="username"
-              type="text"
-              placeholder="Enter your username"
+              id="email"
+              type="email"
+              placeholder="Enter your email"
               className="block w-full pl-10 pr-3 py-2.5 border border-border bg-white/5 rounded-lg focus:ring-2 focus:ring-accent/50 focus:border-transparent transition-all"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
@@ -86,25 +85,27 @@ const LoginForm: React.FC<LoginFormProps> = ({ className }) => {
           </div>
         </div>
         
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
-              id="remember-me"
-              name="remember-me"
-              type="checkbox"
-              className="h-4 w-4 rounded border-border bg-white/5 focus:ring-accent/50"
-            />
-            <label htmlFor="remember-me" className="ml-2 block text-sm">
-              Remember me
-            </label>
+        {!isSignUp && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                className="h-4 w-4 rounded border-border bg-white/5 focus:ring-accent/50"
+              />
+              <label htmlFor="remember-me" className="ml-2 block text-sm">
+                Remember me
+              </label>
+            </div>
+            
+            <div className="text-sm">
+              <a href="#" className="hover:text-accent transition-colors">
+                Forgot password?
+              </a>
+            </div>
           </div>
-          
-          <div className="text-sm">
-            <a href="#" className="hover:text-accent transition-colors">
-              Forgot password?
-            </a>
-          </div>
-        </div>
+        )}
         
         <button
           type="submit"
@@ -117,16 +118,20 @@ const LoginForm: React.FC<LoginFormProps> = ({ className }) => {
           {isLoading ? (
             <div className="animate-pulse flex items-center">
               <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin mr-2"></div>
-              Signing in...
+              {isSignUp ? 'Signing up...' : 'Signing in...'}
             </div>
           ) : (
-            'Sign In'
+            isSignUp ? 'Sign Up' : 'Sign In'
           )}
         </button>
       </form>
       
       <div className="mt-6 text-center text-sm">
-        <p>Don't have an account? <a href="#" className="text-accent hover:underline">Contact administrator</a></p>
+        {isSignUp ? (
+          <p>Already have an account? <button onClick={() => setIsSignUp(false)} className="text-accent hover:underline">Sign In</button></p>
+        ) : (
+          <p>Don't have an account? <button onClick={() => setIsSignUp(true)} className="text-accent hover:underline">Sign Up</button></p>
+        )}
       </div>
     </GlassCard>
   );
