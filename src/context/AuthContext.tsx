@@ -18,10 +18,11 @@ type AuthContextType = {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
   isInventoryManager: boolean;
+  createUser: (email: string, password: string, firstName: string, lastName: string, role: 'admin' | 'inventory_manager' | 'user') => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -103,16 +104,77 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signUp({ email, password });
       
-      if (error) throw error;
+      // Create the user in Supabase Auth
+      const { data: userData, error: signUpError } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName
+          }
+        }
+      });
+      
+      if (signUpError) throw signUpError;
+      
+      // Update the profile with first and last name if provided
+      if (userData.user && (firstName || lastName)) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            first_name: firstName,
+            last_name: lastName
+          })
+          .eq('id', userData.user.id);
+          
+        if (updateError) console.error('Error updating profile:', updateError);
+      }
       
       toast.success('Registration successful! Please check your email to confirm your account.');
     } catch (error: any) {
       toast.error(error.message || 'An error occurred during registration');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const createUser = async (
+    email: string, 
+    password: string, 
+    firstName: string, 
+    lastName: string, 
+    role: 'admin' | 'inventory_manager' | 'user'
+  ) => {
+    try {
+      setIsLoading(true);
+      
+      if (!isAdmin) {
+        toast.error('Only administrators can create users');
+        return;
+      }
+      
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email,
+          password,
+          firstName,
+          lastName,
+          role
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success(`User ${email} created successfully with role: ${role}`);
+      return data;
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred creating user');
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -154,6 +216,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         signOut,
         isAdmin,
         isInventoryManager,
+        createUser,
       }}
     >
       {children}
