@@ -1,28 +1,82 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, PackagePlus, Search } from 'lucide-react';
+import { Package, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { AddProductDialog } from '@/components/product/AddProductDialog';
+import { useToast } from '@/hooks/use-toast';
+
+interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  category: string | null;
+  unit_price: number | null;
+  stock?: number;
+}
 
 const Products = () => {
-  // Sample product data
-  const products = [
-    { id: 1, name: 'Widget A', sku: 'WA-001', category: 'Widgets', price: 19.99, stock: 150 },
-    { id: 2, name: 'Widget B', sku: 'WB-002', category: 'Widgets', price: 24.99, stock: 75 },
-    { id: 3, name: 'Gadget X', sku: 'GX-001', category: 'Gadgets', price: 49.99, stock: 25 },
-    { id: 4, name: 'Tool Y', sku: 'TY-001', category: 'Tools', price: 99.99, stock: 10 },
-    { id: 5, name: 'Part Z', sku: 'PZ-001', category: 'Parts', price: 5.99, stock: 500 },
-  ];
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const { toast } = useToast();
+  
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      // Fetch products
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .order('name');
+      
+      if (productsError) throw productsError;
+      
+      // Get inventory data for each product
+      const productsWithStock = await Promise.all(
+        productsData.map(async (product) => {
+          const { data: inventoryData } = await supabase
+            .from('inventory')
+            .select('quantity')
+            .eq('product_id', product.id)
+            .maybeSingle();
+          
+          return {
+            ...product,
+            stock: inventoryData?.quantity || 0
+          };
+        })
+      );
+      
+      setProducts(productsWithStock);
+    } catch (error: any) {
+      toast({
+        title: 'Error fetching products',
+        description: error.message || 'Something went wrong',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const filteredProducts = products.filter((product) => 
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (product.category && product.category.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div className="container py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Products</h1>
-        <Button className="flex items-center gap-2">
-          <PackagePlus className="h-4 w-4" />
-          Add Product
-        </Button>
+        <AddProductDialog onProductAdded={fetchProducts} />
       </div>
 
       <Card>
@@ -40,6 +94,8 @@ const Products = () => {
               <Input 
                 placeholder="Search products..." 
                 className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="flex items-center gap-2">
@@ -62,29 +118,39 @@ const Products = () => {
                 </tr>
               </thead>
               <tbody>
-                {products.map((product) => (
-                  <tr key={product.id} className="border-b">
-                    <td className="py-3 px-4">{product.name}</td>
-                    <td className="py-3 px-4">{product.sku}</td>
-                    <td className="py-3 px-4">{product.category}</td>
-                    <td className="py-3 px-4 text-right">${product.price.toFixed(2)}</td>
-                    <td className="py-3 px-4 text-right">
-                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${
-                        product.stock > 100 ? 'bg-green-100 text-green-800' :
-                        product.stock > 20 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {product.stock}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <Button variant="ghost" size="sm">Edit</Button>
-                        <Button variant="ghost" size="sm">View</Button>
-                      </div>
-                    </td>
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="py-3 px-4 text-center">Loading products...</td>
                   </tr>
-                ))}
+                ) : filteredProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-3 px-4 text-center">No products found.</td>
+                  </tr>
+                ) : (
+                  filteredProducts.map((product) => (
+                    <tr key={product.id} className="border-b">
+                      <td className="py-3 px-4">{product.name}</td>
+                      <td className="py-3 px-4">{product.sku}</td>
+                      <td className="py-3 px-4">{product.category || '-'}</td>
+                      <td className="py-3 px-4 text-right">${product.unit_price?.toFixed(2) || '0.00'}</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          (product.stock || 0) > 100 ? 'bg-green-100 text-green-800' :
+                          (product.stock || 0) > 20 ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {product.stock || 0}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button variant="ghost" size="sm">Edit</Button>
+                          <Button variant="ghost" size="sm">View</Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
