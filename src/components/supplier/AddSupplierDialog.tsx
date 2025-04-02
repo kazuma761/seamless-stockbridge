@@ -9,7 +9,8 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogFooter,
-  DialogTrigger
+  DialogTrigger,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { 
   Form, 
@@ -56,8 +57,10 @@ export function AddSupplierDialog({ onSupplierAdded }: AddSupplierDialogProps) {
 
   const onSubmit = async (values: SupplierFormValues) => {
     try {
+      console.log('Submitting supplier:', values);
+      
       // Add supplier to database
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('suppliers')
         .insert({
           name: values.name,
@@ -65,10 +68,16 @@ export function AddSupplierDialog({ onSupplierAdded }: AddSupplierDialogProps) {
           email: values.email,
           phone: values.phone,
           address: values.address,
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
+      console.log('Supplier added:', data);
+      
       toast({
         title: 'Supplier added successfully',
         description: `${values.name} has been added to suppliers`,
@@ -81,6 +90,7 @@ export function AddSupplierDialog({ onSupplierAdded }: AddSupplierDialogProps) {
       // Refresh the supplier list
       onSupplierAdded();
     } catch (error: any) {
+      console.error('Error adding supplier:', error);
       toast({
         title: 'Error adding supplier',
         description: error.message || 'Something went wrong',
@@ -100,6 +110,9 @@ export function AddSupplierDialog({ onSupplierAdded }: AddSupplierDialogProps) {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Supplier</DialogTitle>
+          <DialogDescription>
+            Add a new supplier to your directory. Fill in all the required information.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

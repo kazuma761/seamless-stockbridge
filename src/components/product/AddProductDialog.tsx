@@ -9,7 +9,8 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogFooter,
-  DialogTrigger
+  DialogTrigger,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { 
   Form, 
@@ -60,6 +61,8 @@ export function AddProductDialog({ onProductAdded }: AddProductDialogProps) {
 
   const onSubmit = async (values: ProductFormValues) => {
     try {
+      console.log('Submitting product:', values);
+      
       // Add product to database
       const { data, error } = await supabase
         .from('products')
@@ -71,11 +74,16 @@ export function AddProductDialog({ onProductAdded }: AddProductDialogProps) {
         })
         .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Product added:', data);
 
       if (data && data.length > 0) {
         // Optionally, update inventory with initial stock
-        await supabase
+        const { error: inventoryError } = await supabase
           .from('inventory')
           .insert({
             product_id: data[0].id,
@@ -83,6 +91,10 @@ export function AddProductDialog({ onProductAdded }: AddProductDialogProps) {
             quantity: Number(values.stock),
             min_threshold: 5, // Default value
           });
+          
+        if (inventoryError) {
+          console.error('Error updating inventory:', inventoryError);
+        }
 
         toast({
           title: 'Product added successfully',
@@ -97,6 +109,7 @@ export function AddProductDialog({ onProductAdded }: AddProductDialogProps) {
         onProductAdded();
       }
     } catch (error: any) {
+      console.error('Error adding product:', error);
       toast({
         title: 'Error adding product',
         description: error.message || 'Something went wrong',
@@ -116,6 +129,9 @@ export function AddProductDialog({ onProductAdded }: AddProductDialogProps) {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Product</DialogTitle>
+          <DialogDescription>
+            Add a new product to your inventory. Fill in all the required information.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

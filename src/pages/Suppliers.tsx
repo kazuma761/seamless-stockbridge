@@ -31,9 +31,15 @@ const Suppliers = () => {
         .select('*')
         .order('name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching suppliers:', error);
+        throw error;
+      }
+      
       setSuppliers(data || []);
+      console.log('Fetched suppliers:', data);
     } catch (error: any) {
+      console.error('Error in fetchSuppliers:', error);
       toast({
         title: 'Error fetching suppliers',
         description: error.message || 'Something went wrong',
