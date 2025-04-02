@@ -73,6 +73,13 @@ export function AddSupplierDialog({ onSupplierAdded }: AddSupplierDialogProps) {
 
       if (error) {
         console.error('Supabase error:', error);
+        if (error.code === 'PGRST301') {
+          toast({
+            title: 'Permission error',
+            description: 'You may not have sufficient permissions to add suppliers.',
+            variant: 'destructive',
+          });
+        }
         throw error;
       }
 

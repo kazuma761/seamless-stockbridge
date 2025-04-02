@@ -26,6 +26,7 @@ const Suppliers = () => {
   const fetchSuppliers = async () => {
     setLoading(true);
     try {
+      console.log('Fetching suppliers...');
       const { data, error } = await supabase
         .from('suppliers')
         .select('*')
@@ -33,6 +34,13 @@ const Suppliers = () => {
       
       if (error) {
         console.error('Error fetching suppliers:', error);
+        if (error.code === 'PGRST301') {
+          toast({
+            title: 'Permission error',
+            description: 'You may not have sufficient permissions to view suppliers.',
+            variant: 'destructive',
+          });
+        }
         throw error;
       }
       

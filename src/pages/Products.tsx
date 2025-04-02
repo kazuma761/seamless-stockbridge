@@ -26,22 +26,37 @@ const Products = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
+      console.log('Fetching products...');
       // Fetch products
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('*')
         .order('name');
       
-      if (productsError) throw productsError;
+      if (productsError) {
+        console.error('Error fetching products:', productsError);
+        if (productsError.code === 'PGRST301') {
+          toast({
+            title: 'Permission error',
+            description: 'You may not have sufficient permissions to view products.',
+            variant: 'destructive',
+          });
+        }
+        throw productsError;
+      }
       
       // Get inventory data for each product
       const productsWithStock = await Promise.all(
         productsData.map(async (product) => {
-          const { data: inventoryData } = await supabase
+          const { data: inventoryData, error: inventoryError } = await supabase
             .from('inventory')
             .select('quantity')
             .eq('product_id', product.id)
             .maybeSingle();
+          
+          if (inventoryError) {
+            console.warn('Error fetching inventory for product:', product.id, inventoryError);
+          }
           
           return {
             ...product,
@@ -51,7 +66,9 @@ const Products = () => {
       );
       
       setProducts(productsWithStock);
+      console.log('Fetched products with stock:', productsWithStock);
     } catch (error: any) {
+      console.error('Error in fetchProducts:', error);
       toast({
         title: 'Error fetching products',
         description: error.message || 'Something went wrong',

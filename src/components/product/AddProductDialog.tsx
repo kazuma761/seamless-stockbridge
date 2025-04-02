@@ -76,6 +76,13 @@ export function AddProductDialog({ onProductAdded }: AddProductDialogProps) {
 
       if (error) {
         console.error('Supabase error:', error);
+        if (error.code === 'PGRST301') {
+          toast({
+            title: 'Permission error',
+            description: 'You may not have sufficient permissions to add products.',
+            variant: 'destructive',
+          });
+        }
         throw error;
       }
 
@@ -94,6 +101,13 @@ export function AddProductDialog({ onProductAdded }: AddProductDialogProps) {
           
         if (inventoryError) {
           console.error('Error updating inventory:', inventoryError);
+          if (inventoryError.code === 'PGRST301') {
+            toast({
+              title: 'Permission error',
+              description: 'You may not have sufficient permissions to update inventory.',
+              variant: 'destructive',
+            });
+          }
         }
 
         toast({
