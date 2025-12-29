@@ -10,6 +10,10 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./context/AuthContext";
 import AuthRoute from "./components/auth/AuthRoute";
 import Inventory from "./pages/Inventory";
+import UserManagement from "./pages/UserManagement";
+import Products from "./pages/Products";
+import Orders from "./pages/Orders";
+import Suppliers from "./pages/Suppliers";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +28,17 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/inventory" element={<Inventory />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/suppliers" element={<Suppliers />} />
+            <Route 
+              path="/user-management" 
+              element={
+                <AuthRoute requireAuth requireAdmin>
+                  <UserManagement />
+                </AuthRoute>
+              } 
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

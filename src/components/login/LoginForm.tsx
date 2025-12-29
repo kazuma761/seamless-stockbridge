@@ -14,13 +14,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ className }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const { signIn, signUp, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (isSignUp) {
-      await signUp(email, password);
+      await signUp(email, password, firstName, lastName);
     } else {
       await signIn(email, password);
     }
@@ -84,6 +86,37 @@ const LoginForm: React.FC<LoginFormProps> = ({ className }) => {
             </button>
           </div>
         </div>
+        
+        {isSignUp && (
+          <>
+            <div className="space-y-2">
+              <label htmlFor="firstName" className="block text-sm font-medium">
+                First Name
+              </label>
+              <input
+                id="firstName"
+                type="text"
+                placeholder="Enter your first name"
+                className="block w-full px-3 py-2.5 border border-border bg-white/5 rounded-lg focus:ring-2 focus:ring-accent/50 focus:border-transparent transition-all"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="lastName" className="block text-sm font-medium">
+                Last Name
+              </label>
+              <input
+                id="lastName"
+                type="text"
+                placeholder="Enter your last name"
+                className="block w-full px-3 py-2.5 border border-border bg-white/5 rounded-lg focus:ring-2 focus:ring-accent/50 focus:border-transparent transition-all"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </div>
+          </>
+        )}
         
         {!isSignUp && (
           <div className="flex items-center justify-between">

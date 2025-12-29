@@ -1,138 +1,156 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { 
   BarChart3, 
   Box, 
   ChevronLeft, 
   ChevronRight, 
-  ClipboardList, 
-  Cog, 
   Home, 
+  LogOut, 
   Package, 
+  Settings, 
   ShoppingCart, 
   Truck, 
-  Users 
+  UserPlus, 
+  Users, 
+  Warehouse 
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-interface NavItem {
-  title: string;
-  href: string;
-  icon: React.ElementType;
-}
-
-interface NavSection {
-  title: string;
-  items: NavItem[];
-}
-
-const navSections: NavSection[] = [
-  {
-    title: 'Main',
-    items: [
-      { title: 'Dashboard', href: '/dashboard', icon: Home },
-      { title: 'Inventory', href: '/inventory', icon: Box },
-      { title: 'Orders', href: '/orders', icon: ShoppingCart },
-    ]
-  },
-  {
-    title: 'Management',
-    items: [
-      { title: 'Products', href: '/products', icon: Package },
-      { title: 'Suppliers', href: '/suppliers', icon: Truck },
-      { title: 'Reports', href: '/reports', icon: BarChart3 },
-      { title: 'Purchase Orders', href: '/purchase-orders', icon: ClipboardList },
-    ]
-  },
-  {
-    title: 'Administration',
-    items: [
-      { title: 'Users', href: '/users', icon: Users },
-      { title: 'Settings', href: '/settings', icon: Cog },
-    ]
-  }
-];
-
-interface SidebarProps {
-  className?: string;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ className }) => {
-  const [collapsed, setCollapsed] = useState(false);
+const Sidebar = () => {
+  const [expanded, setExpanded] = useState(true);
   const location = useLocation();
-  
+  const { signOut, isAdmin, isInventoryManager } = useAuth();
+
+  const navItems = [
+    { 
+      title: 'Dashboard', 
+      icon: <Home className="h-5 w-5" />, 
+      path: '/dashboard',
+      showFor: () => true
+    },
+    { 
+      title: 'Inventory', 
+      icon: <Warehouse className="h-5 w-5" />, 
+      path: '/inventory',
+      showFor: () => true
+    },
+    { 
+      title: 'Products', 
+      icon: <Package className="h-5 w-5" />, 
+      path: '/products',
+      showFor: () => true
+    },
+    { 
+      title: 'Orders', 
+      icon: <ShoppingCart className="h-5 w-5" />, 
+      path: '/orders',
+      showFor: () => true
+    },
+    { 
+      title: 'Suppliers', 
+      icon: <Truck className="h-5 w-5" />, 
+      path: '/suppliers',
+      showFor: () => true
+    },
+    { 
+      title: 'Analytics', 
+      icon: <BarChart3 className="h-5 w-5" />, 
+      path: '/analytics',
+      showFor: () => isAdmin || isInventoryManager
+    },
+    { 
+      title: 'User Management', 
+      icon: <UserPlus className="h-5 w-5" />, 
+      path: '/user-management',
+      showFor: () => isAdmin
+    },
+    { 
+      title: 'Settings', 
+      icon: <Settings className="h-5 w-5" />, 
+      path: '/settings',
+      showFor: () => true
+    },
+  ];
+
   return (
-    <aside 
-      className={cn(
-        'bg-navy text-lightGray/90 h-screen flex flex-col transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64',
-        className
-      )}
-    >
-      <div className="flex items-center h-16 border-b border-white/10 px-4">
-        {!collapsed && <h2 className="text-lg font-bold tracking-tight">InventTrack</h2>}
-        <button 
-          className={cn(
-            'p-1.5 rounded-lg bg-ocean/20 hover:bg-ocean/30 transition-colors ml-auto'
-          )}
-          onClick={() => setCollapsed(!collapsed)}
+    <div className={cn(
+      "h-screen bg-card border-r border-border transition-all duration-300 relative flex flex-col",
+      expanded ? "w-64" : "w-16"
+    )}>
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className={cn("flex items-center space-x-2", !expanded && "justify-center")}>
+          <Box className="h-6 w-6 text-primary" />
+          {expanded && <span className="font-semibold">InventTrack</span>}
+        </div>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-full"
         >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {expanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </button>
       </div>
-      
-      <div className="flex-1 py-4 overflow-y-auto scrollbar-hide">
-        {navSections.map((section, i) => (
-          <div key={i} className="mb-6 px-3">
-            {!collapsed && (
-              <h3 className="text-xs uppercase text-lightGray/60 font-medium px-3 mb-2">
-                {section.title}
-              </h3>
-            )}
-            
-            <ul className="space-y-1">
-              {section.items.map((item, j) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.href;
-                
-                return (
-                  <li key={j}>
-                    <Link
-                      to={item.href}
-                      className={cn(
-                        'flex items-center rounded-lg py-2 px-3 hover:bg-ocean transition-colors',
-                        isActive ? 'bg-teal text-white' : 'text-lightGray/80'
-                      )}
-                    >
-                      <Icon className={cn('h-5 w-5', collapsed ? 'mx-auto' : 'mr-3')} />
-                      {!collapsed && <span>{item.title}</span>}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </div>
-      
-      <div className="border-t border-white/10 p-4">
-        <div className={cn(
-          'flex items-center',
-          collapsed ? 'justify-center' : 'justify-start'
-        )}>
-          <div className="w-8 h-8 rounded-full bg-teal flex items-center justify-center">
-            <span className="text-sm font-medium">JD</span>
-          </div>
-          {!collapsed && (
-            <div className="ml-3">
-              <p className="text-sm font-medium">John Doe</p>
-              <p className="text-xs text-lightGray/60">Admin</p>
-            </div>
+
+      <nav className="flex-1 py-4 overflow-y-auto">
+        <ul className="space-y-1 px-2">
+          {navItems.filter(item => item.showFor()).map((item) => (
+            <li key={item.path}>
+              {expanded ? (
+                <Link
+                  to={item.path}
+                  className={cn(
+                    "flex items-center space-x-3 px-3 py-2 rounded-md transition-colors",
+                    location.pathname === item.path
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {item.icon}
+                  <span>{item.title}</span>
+                </Link>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        to={item.path}
+                        className={cn(
+                          "flex justify-center items-center p-2 rounded-md transition-colors",
+                          location.pathname === item.path
+                            ? "bg-primary/10 text-primary"
+                            : "hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {item.icon}
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {item.title}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <div className="p-4 border-t border-border">
+        <button
+          onClick={signOut}
+          className={cn(
+            "flex items-center space-x-3 w-full px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors",
+            !expanded && "justify-center"
           )}
-        </div>
+        >
+          <LogOut className="h-5 w-5" />
+          {expanded && <span>Sign Out</span>}
+        </button>
       </div>
-    </aside>
+    </div>
   );
 };
 
